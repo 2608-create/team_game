@@ -1,19 +1,21 @@
 {
   "name": "team_game",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "마우스와 터치로 포켓볼과 다트를 체험하는 움직임 스포츠 프로토타입",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js"
   },
-  "keywords": [],
+  "keywords": [
+    "sports",
+    "pool",
+    "darts",
+    "motion-game"
+  ],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "cors": "^2.8.6",
-    "express": "^5.3.0",
-    "mysql2": "^3.24.6"
+    "express": "^5.3.0"
   }
 }
