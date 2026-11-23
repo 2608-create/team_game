@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>PRO 아케이드 스포츠 센터</title>
+    <style>
+        * { box-sizing: border-box; user-select: none; }
+        body { 
+            margin: 0; padding: 20px; background: radial-gradient(circle at center, #1a1a2e 0%, #0f0f1a 100%); 
+            color: #fff; font-family: 'Pretendard', 'Apple SD Gothic Neo', sans-serif; 
+            display: flex; flex-direction: column; align-items: center; min-height: 100vh;
+        }
+        h1 { 
+            margin: 5px 0 15px 0; font-size: 32px; letter-spacing: 2px;
+            background: linear-gradient(90deg, #00f2fe, #4facfe, #00f2fe);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .top-bar {
+            display: flex; gap: 15px; align-items: center; background: rgba(255,255,255,0.07);
+            padding: 10px 25px; border-radius: 50px; border: 1px solid rgba(255,255,255,0.15); margin-bottom: 15px;
+        }
+        .top-bar input {
+            padding: 8px 15px; border-radius: 20px; border: 1px solid #4facfe;
+            background: rgba(0,0,0,0.5); color: #fff; font-size: 15px; text-align: center;
+        }
+        .btn {
+            padding: 9px 20px; border-radius: 20px; border: none; font-weight: bold; font-size: 14px;
+            cursor: pointer; color: #fff;
+        }
+        .btn-Dart { background: linear-gradient(45deg, #ff416c, #ff4b2b); }
+        .btn-Pool { background: linear-gradient(45deg, #11998e, #38ef7d); }
+        .btn-Save { background: linear-gradient(45deg, #f7971e, #ffd200); color: #000; }
+        .main-wrapper { display: flex; gap: 20px; align-items: flex-start; justify-content: center; flex-wrap: wrap; }
+        .game-stage {
+            background: #12121c; padding: 15px; border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; align-items: center;
+        }
+        .hud-bar {
+            width: 100%; display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 20px; background: rgba(0,0,0,0.4); border-radius: 12px; margin-bottom: 12px;
+        }
+        .score-box { font-size: 26px; font-weight: 900; color: #ffd200; }
+        .guide-text { font-size: 14px; color: #aaa; }
+        canvas { border-radius: 12px; cursor: crosshair; }
+        .pool-controls {
+            display: flex; flex-direction: column; gap: 15px; background: rgba(255,255,255,0.05);
+            padding: 20px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); width: 220px; align-items: center;
+        }
+        .spin-title { font-size: 15px; font-weight: bold; color: #38ef7d; }
+        .spin-ball {
+            width: 120px; height: 120px; border-radius: 50%;
+            background: radial-gradient(circle at 35% 35%, #ffffff, #dcdcdc 60%, #888888 100%);
+            position: relative; cursor: pointer; border: 2px solid #444;
+        }
+        .spin-ball::before { content: ''; position: absolute; top: 50%; left: 10%; right: 10%; height: 1px; background: rgba(0,0,0,0.2); }
+        .spin-ball::after { content: ''; position: absolute; left: 50%; top: 10%; bottom: 10%; width: 1px; background: rgba(0,0,0,0.2); }
+        .spin-dot {
+            width: 16px; height: 16px; background: #ff0044; border: 2px solid #fff; border-radius: 50%;
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none;
+        }
+        .power-wrap { width: 100%; text-align: center; }
+        .power-bar-bg { width: 100%; height: 20px; background: #222; border-radius: 10px; overflow: hidden; border: 1px solid #555; margin-top: 6px; }
+        .power-bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #38ef7d, #ffd200, #ff0844); }
+        .ranking-panel {
+            background: rgba(255,255,255,0.05); padding: 20px; border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.1); width: 320px;
+        }
+        .ranking-panel h3 { margin: 0 0 15px 0; text-align: center; color: #00f2fe; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th, td { padding: 8px 4px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.08); }
+        .act-btn { padding: 4px 8px; font-size: 11px; border-radius: 6px; border: none; cursor: pointer; margin: 0 2px; font-weight: bold;}
+    </style>
+</head>
+<body>
+    <h1>⚡ PRO ARCADE SPORTS</h1>
+    <div class="top-bar">
+        <span>👤 플레이어:</span>
+        <input type="text" id="username" value="초고수">
+        <button class="btn btn-Dart" onclick="switchGame('DART')">🎯 프로 다트</button>
+        <button class="btn btn-Pool" onclick="switchGame('POOL')">🎱 프로 포켓볼</button>
+        <button class="btn btn-Save" onclick="saveScore()">💾 랭킹 등록</button>
+    </div>
+    <div class="main-wrapper">
+        <div class="game-stage">
+            <div class="hud-bar">
+                <div class="score-box">SCORE: <span id="scoreDisplay">0</span></div>
+                <div class="guide-text" id="guideText"></div>
+                <button class="btn" style="background:#444; padding:6px 14px; font-size:12px;" onclick="resetCurrentGame()">🔄 초기화</button>
+            </div>
+            <canvas id="gameCanvas" width="860" height="480"></canvas>
+        </div>
+        <div class="pool-controls" id="poolControls">
+            <div class="spin-title">🎯 당점 (스핀) 조절</div>
+            <div class="spin-ball" id="spinBall"><div class="spin-dot" id="spinDot"></div></div>
+            <div style="font-size:12px; color:#ccc; text-align:center;">
+                ▲ 상단: <b>밀어치기</b><br>▼ 하단: <b>끌어치기</b><br>◀▶ 좌우: <b>회전</b>
+            </div>
+            <button class="btn" style="background:#333; font-size:12px; padding:5px 12px;" onclick="resetSpin()">당점 중앙 초기화</button>
+            <div class="power-wrap">
+                <div class="spin-title" style="color:#ffd200;">⚡ 스트로크 파워</div>
+                <div class="power-bar-bg"><div class="power-bar-fill" id="powerBar"></div></div>
+                <div id="powerText" style="font-size:13px; color:#aaa; margin-top:6px;">큐대를 뒤로 당기세요</div>
+            </div>
+        </div>
+        <div class="ranking-panel">
+            <h3 id="rankTitle">🏆 명예의 전당</h3>
+            <table>
+                <thead><tr><th>순위</th><th>닉네임</th><th>점수</th><th>관리</th></tr></thead>
+                <tbody id="rankList"></tbody>
+            </table>
+        </div>
+    </div>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let currentGame = 'POOL', currentScore = 0, animId = null;
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound(type, power = 1) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            const now = audioCtx.currentTime;
+            if (type === 'hit') {
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(600, now); osc.frequency.exponentialRampToValueAtTime(120, now + 0.06);
+                gain.gain.setValueAtTime(Math.min(1, power * 0.15), now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+                osc.start(now); osc.stop(now + 0.06);
+            } else if (type === 'pocket') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(300, now); osc.frequency.exponentialRampToValueAtTime(800, now + 0.25);
+                gain.gain.setValueAtTime(0.4, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                osc.start(now); osc.stop(now + 0.25);
+            } else if (type === 'dart') {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(180, now); osc.frequency.exponentialRampToValueAtTime(40, now + 0.09);
+                gain.gain.setValueAtTime(0.5, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.09);
+                osc.start(now); osc.stop(now + 0.09);
+            }
+        }
+        function updateScore(pts) { currentScore += pts; document.getElementById('scoreDisplay').innerText = currentScore; }
+        function switchGame(type) {
+            currentGame = type; currentScore = 0; updateScore(0);
+            if (animId) cancelAnimationFrame(animId);
+            if (type === 'DART') {
+                canvas.width = 550; canvas.height = 550;
+                document.getElementById('poolControls').style.display = 'none';
+                document.getElementById('guideText').innerText = '조준점을 맞춰 클릭하세요!';
+                initDart();
+            } else {
+                canvas.width = 860; canvas.height = 480;
+                document.getElementById('poolControls').style.display = 'flex';
+                document.getElementById('guideText').innerText = '마우스 이동: 두께 조준 ➔ 클릭 후 뒤로 당기기: 파워 조절 ➔ 마우스 놓기: 샷!';
+                initPool();
+            }
+            loadRankings();
+        }
+        function resetCurrentGame() { switchGame(currentGame); }
+
+        const dartNumbers = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5];
+        let dartsThrown = [], aimPos = { x: 275, y: 275 }, mousePos = { x: 275, y: 275 }, floatTexts = [];
+        function initDart() {
+            dartsThrown = []; floatTexts = [];
+            canvas.onmousemove = (e) => { const r = canvas.getBoundingClientRect(); mousePos.x = e.clientX - r.left; mousePos.y = e.clientY - r.top; };
+            canvas.onmousedown = () => {
+                playSound('dart');
+                const s = calcDartScore(aimPos.x, aimPos.y);
+                dartsThrown.push({ x: aimPos.x, y: aimPos.y }); updateScore(s.pts);
+                floatTexts.push({ x: aimPos.x, y: aimPos.y, text: s.label, alpha: 1.0 });
+            };
+            canvas.onmouseup = null; loopDart();
+        }
+        function calcDartScore(x, y) {
+            const dist = Math.hypot(x - 275, y - 275);
+            if (dist <= 10) return { pts: 50, label: 'BULL! +50' };
+            if (dist <= 24) return { pts: 25, label: '+25' };
+            if (dist > 210) return { pts: 0, label: 'MISS' };
+            let angle = Math.atan2(y - 275, x - 275) * (180 / Math.PI) + 99;
+            if (angle < 0) angle += 360;
+            const base = dartNumbers[Math.floor(angle / 18) % 20];
+            if (dist >= 115 && dist <= 130) return { pts: base * 3, label: `T${base} (+${base*3})` };
+            if (dist >= 195 && dist <= 210) return { pts: base * 2, label: `D${base} (+${base*2})` };
+            return { pts: base, label: `+${base}` };
+        }
+        function loopDart() {
+            if (currentGame !== 'DART') return;
+            ctx.clearRect(0, 0, 550, 550);
+            ctx.beginPath(); ctx.arc(275, 275, 245, 0, Math.PI*2); ctx.fillStyle = '#0d0d14'; ctx.fill();
+            for (let i = 0; i < 20; i++) {
+                const a1 = (i * 18 - 99) * Math.PI / 180, a2 = ((i + 1) * 18 - 99) * Math.PI / 180, ev = i % 2 === 0;
+                drawSector(24, 210, a1, a2, ev ? '#1a1a1a' : '#f5f0e6');
+                drawSector(195, 210, a1, a2, ev ? '#e61919' : '#19b34d');
+                drawSector(115, 130, a1, a2, ev ? '#e61919' : '#19b34d');
+                const mid = (a1 + a2) / 2;
+                ctx.fillStyle = '#fff'; ctx.font = 'bold 16px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(dartNumbers[i], 275 + Math.cos(mid) * 228, 275 + Math.sin(mid) * 228);
+            }
+            ctx.beginPath(); ctx.arc(275, 275, 24, 0, Math.PI*2); ctx.fillStyle = '#19b34d'; ctx.fill();
+            ctx.beginPath(); ctx.arc(275, 275, 10, 0, Math.PI*2); ctx.fillStyle = '#e61919'; ctx.fill();
+            dartsThrown.forEach(d => { ctx.beginPath(); ctx.arc(d.x, d.y, 5, 0, Math.PI*2); ctx.fillStyle = '#00f2fe'; ctx.fill(); });
+            const t = Date.now() * 0.005;
+            aimPos.x = mousePos.x + Math.sin(t * 1.7) * 6; aimPos.y = mousePos.y + Math.cos(t * 2.3) * 6;
+            ctx.beginPath(); ctx.arc(aimPos.x, aimPos.y, 12, 0, Math.PI*2); ctx.strokeStyle = '#00f2fe'; ctx.lineWidth = 2; ctx.stroke();
+            floatTexts.forEach((ft, idx) => {
+                ctx.fillStyle = `rgba(255, 210, 0, ${ft.alpha})`; ctx.font = 'bold 20px sans-serif'; ctx.fillText(ft.text, ft.x, ft.y);
+                ft.y -= 1; ft.alpha -= 0.02; if (ft.alpha <= 0) floatTexts.splice(idx, 1);
+            });
+            animId = requestAnimationFrame(loopDart);
+        }
+        function drawSector(r1, r2, a1, a2, color) {
+            ctx.beginPath(); ctx.arc(275, 275, r2, a1, a2); ctx.arc(275, 275, r1, a2, a1, true); ctx.closePath();
+            ctx.fillStyle = color; ctx.fill(); ctx.lineWidth = 1; ctx.strokeStyle = '#555'; ctx.stroke();
+        }
+
+        const TABLE = { x: 40, y: 40, w: 780, h: 400, r: 14 };
+        let balls = [], pockets = [];
+        let cue = { angle: 0, isPulling: false, pullStart: {x:0, y:0}, power: 0, maxPower: 32, spinX: 0, spinY: 0 };
+        const spinBallEl = document.getElementById('spinBall'), spinDotEl = document.getElementById('spinDot');
+        spinBallEl.addEventListener('mousedown', (e) => {
+            const rect = spinBallEl.getBoundingClientRect(), cx = rect.width / 2, cy = rect.height / 2;
+            let dx = e.clientX - rect.left - cx, dy = e.clientY - rect.top - cy, maxR = cx - 14;
+            const dist = Math.hypot(dx, dy);
+            if (dist > maxR) { dx = (dx / dist) * maxR; dy = (dy / dist) * maxR; }
+            cue.spinX = dx / maxR; cue.spinY = -dy / maxR;
+            spinDotEl.style.left = `${cx + dx}px`; spinDotEl.style.top = `${cy + dy}px`;
+        });
+        function resetSpin() { cue.spinX = 0; cue.spinY = 0; spinDotEl.style.left = '50%'; spinDotEl.style.top = '50%'; }
+        function initPool() {
+            resetSpin();
+            const { x, y, w, h, r } = TABLE;
+            pockets = [{ x, y }, { x: x + w/2, y: y - 4 }, { x: x + w, y }, { x, y: y + h }, { x: x + w/2, y: y + h + 4 }, { x: x + w, y: y + h }];
+            balls = [{ id: 0, x: x + 180, y: y + h/2, vx: 0, vy: 0, spinX: 0, spinY: 0, color: '#ffffff', active: true }];
+            const colors = ['#ffd200', '#0055ff', '#ff1100', '#8800ff', '#ff6600', '#009944', '#990000', '#111111', '#ffd200', '#0055ff'];
+            let idx = 0;
+            for (let col = 0; col < 4; col++) {
+                for (let row = 0; row <= col; row++) {
+                    balls.push({ id: idx + 1, x: x + 540 + col * (r * 1.8), y: y + h/2 - (col * r) + (row * r * 2.05), vx: 0, vy: 0, spinX: 0, spinY: 0, color: colors[idx], active: true });
+                    idx++;
+                }
+            }
+            canvas.onmousemove = (e) => {
+                const rect = canvas.getBoundingClientRect(), mx = e.clientX - rect.left, my = e.clientY - rect.top, white = balls[0];
+                if (!white.active || isBallsMoving()) return;
+                if (!cue.isPulling) {
+                    cue.angle = Math.atan2(my - white.y, mx - white.x);
+                } else {
+                    const dx = mx - cue.pullStart.x, dy = my - cue.pullStart.y;
+                    const pullDist = -(dx * Math.cos(cue.angle) + dy * Math.sin(cue.angle));
+                    cue.power = Math.max(0, Math.min(cue.maxPower, pullDist * 0.22));
+                    updatePowerUI();
+                }
+            };
+            canvas.onmousedown = (e) => {
+                if (isBallsMoving() || !balls[0].active) return;
+                const rect = canvas.getBoundingClientRect();
+                cue.isPulling = true; cue.pullStart = { x: e.clientX - rect.left, y: e.clientY - rect.top }; cue.power = 2; updatePowerUI();
+            };
+            canvas.onmouseup = () => {
+                if (!cue.isPulling) return;
+                cue.isPulling = false;
+                if (cue.power > 1.5) {
+                    const white = balls[0]; playSound('hit', cue.power);
+                    white.vx = Math.cos(cue.angle) * cue.power; white.vy = Math.sin(cue.angle) * cue.power;
+                    white.spinY = cue.spinY * (cue.power * 0.45); white.spinX = cue.spinX * (cue.power * 0.35);
+                }
+                cue.power = 0; updatePowerUI();
+            };
+            loopPool();
+        }
+        function updatePowerUI() {
+            const pct = Math.round((cue.power / cue.maxPower) * 100);
+            document.getElementById('powerBar').style.width = `${pct}%`;
+            document.getElementById('powerText').innerText = `파워: ${pct}%`;
+        }
+        function isBallsMoving() { return balls.some(b => b.active && (Math.abs(b.vx) > 0.08 || Math.abs(b.vy) > 0.08)); }
+        function getGhostBall(white, angle) {
+            const { x, y, w, h, r } = TABLE, cos = Math.cos(angle), sin = Math.sin(angle);
+            let cx = white.x, cy = white.y;
+            for (let d = 0; d < 900; d += 2) {
+                cx += cos * 2; cy += sin * 2;
+                if (cx - r < x || cx + r > x + w || cy - r < y || cy + r > y + h) return { gx: cx, gy: cy, target: null };
+                for (let i = 1; i < balls.length; i++) {
+                    const b = balls[i];
+                    if (b.active && Math.hypot(b.x - cx, b.y - cy) <= r * 2) return { gx: cx, gy: cy, target: b };
+                }
+            }
+            return { gx: cx, gy: cy, target: null };
+        }
+        function loopPool() {
+            if (currentGame !== 'POOL') return;
+            const { x, y, w, h, r } = TABLE;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#4a2511'; ctx.fillRect(x - 30, y - 30, w + 60, h + 60);
+            ctx.fillStyle = '#146b3a'; ctx.fillRect(x, y, w, h);
+            pockets.forEach(p => { ctx.beginPath(); ctx.arc(p.x, p.y, 24, 0, Math.PI*2); ctx.fillStyle = '#070709'; ctx.fill(); });
+            balls.forEach(b => {
+                if (!b.active) return;
+                b.x += b.vx; b.y += b.vy; b.vx *= 0.985; b.vy *= 0.985; b.spinX *= 0.97; b.spinY *= 0.97;
+                if (Math.hypot(b.vx, b.vy) < 0.08) { b.vx = 0; b.vy = 0; }
+                if (b.x - r < x) { b.x = x + r; b.vx *= -0.85; b.vy += b.spinX * 0.5; playSound('hit', Math.abs(b.vx)); }
+                if (b.x + r > x + w) { b.x = x + w - r; b.vx *= -0.85; b.vy -= b.spinX * 0.5; playSound('hit', Math.abs(b.vx)); }
+                if (b.y - r < y) { b.y = y + r; b.vy *= -0.85; b.vx -= b.spinX * 0.5; playSound('hit', Math.abs(b.vx)); }
+                if (b.y + r > y + h) { b.y = y + h - r; b.vy *= -0.85; b.vx += b.spinX * 0.5; playSound('hit', Math.abs(b.vx)); }
+                pockets.forEach(p => {
+                    if (Math.hypot(b.x - p.x, b.y - p.y) < 25) {
+                        playSound('pocket');
+                        if (b.id === 0) { b.vx = 0; b.vy = 0; b.x = x + 180; b.y = y + h/2; updateScore(-50); }
+                        else { b.active = false; updateScore(100); }
+                    }
+                });
+            });
+            for (let i = 0; i < balls.length; i++) {
+                for (let j = i + 1; j < balls.length; j++) {
+                    const b1 = balls[i], b2 = balls[j];
+                    if (!b1.active || !b2.active) continue;
+                    const dx = b2.x - b1.x, dy = b2.y - b1.y, dist = Math.hypot(dx, dy);
+                    if (dist > 0 && dist < r * 2) {
+                        const nx = dx / dist, ny = dy / dist, overlap = (r * 2 - dist) / 2;
+                        b1.x -= nx * overlap; b1.y -= ny * overlap; b2.x += nx * overlap; b2.y += ny * overlap;
+                        const p = (nx * (b1.vx - b2.vx) + ny * (b1.vy - b2.vy));
+                        if (p > 0) {
+                            playSound('hit', p);
+                            b1.vx -= p * nx; b1.vy -= p * ny; b2.vx += p * nx; b2.vy += p * ny;
+                            if (b1.id === 0 && Math.abs(b1.spinY) > 0.2) {
+                                b1.vx += nx * b1.spinY * 0.85; b1.vy += ny * b1.spinY * 0.85; b1.spinY *= 0.2;
+                            }
+                        }
+                    }
+                }
+            }
+            const white = balls[0];
+            if (white.active && !isBallsMoving()) {
+                const ghost = getGhostBall(white, cue.angle);
+                ctx.beginPath(); ctx.setLineDash([6, 6]); ctx.moveTo(white.x, white.y); ctx.lineTo(ghost.gx, ghost.gy);
+                ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.setLineDash([]);
+                ctx.beginPath(); ctx.arc(ghost.gx, ghost.gy, r, 0, Math.PI*2); ctx.strokeStyle = '#00f2fe'; ctx.lineWidth = 2; ctx.stroke();
+                if (ghost.target) {
+                    const t = ghost.target, hitA = Math.atan2(t.y - ghost.gy, t.x - ghost.gx);
+                    ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(t.x + Math.cos(hitA) * 75, t.y + Math.sin(hitA) * 75);
+                    ctx.strokeStyle = '#ffd200'; ctx.lineWidth = 3; ctx.stroke();
+                }
+                const pullOffset = 22 + cue.power * 3.8, backA = cue.angle + Math.PI;
+                ctx.beginPath();
+                ctx.moveTo(white.x + Math.cos(backA) * pullOffset, white.y + Math.sin(backA) * pullOffset);
+                ctx.lineTo(white.x + Math.cos(backA) * (pullOffset + 240), white.y + Math.sin(backA) * (pullOffset + 240));
+                ctx.strokeStyle = '#e6c280'; ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.stroke();
+            }
+            balls.forEach(b => {
+                if (!b.active) return;
+                ctx.beginPath(); ctx.arc(b.x, b.y, r, 0, Math.PI*2); ctx.fillStyle = b.color; ctx.fill();
+                if (b.id > 0) {
+                    ctx.beginPath(); ctx.arc(b.x, b.y, 6, 0, Math.PI*2); ctx.fillStyle = '#fff'; ctx.fill();
+                    ctx.fillStyle = '#000'; ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    ctx.fillText(b.id, b.x, b.y);
+                }
+            });
+            animId = requestAnimationFrame(loopPool);
+        }
+
+        async function saveScore() {
+            const username = document.getElementById('username').value.trim();
+            if (!username) return alert('닉네임을 입력하세요!');
+            await fetch('/api/scores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, game_type: currentGame, score: currentScore }) });
+            alert('랭킹 등록 완료!'); loadRankings();
+        }
+        async function loadRankings() {
+            document.getElementById('rankTitle').innerText = `🏆 ${currentGame} 명예의 전당`;
+            const res = await fetch(`/api/scores/${currentGame}`);
+            const data = await res.json();
+            const tbody = document.getElementById('rankList'); tbody.innerHTML = '';
+            data.forEach((row, idx) => {
+                tbody.innerHTML += `<tr><td><b>${idx + 1}위</b></td><td>${row.username}</td><td style="color:#ffd200; font-weight:bold;">${row.score}</td><td><button class="act-btn" style="background:#f39c12; color:#fff;" onclick="editScore(${row.id}, ${row.score})">수정</button><button class="act-btn" style="background:#e74c3c; color:#fff;" onclick="deleteScore(${row.id})">삭제</button></td></tr>`;
+            });
+        }
+        async function editScore(id, oldScore) {
+            const s = prompt('새 점수 입력:', oldScore);
+            if (s === null || isNaN(s)) return;
+            await fetch(`/api/scores/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ score: Number(s) }) });
+            loadRankings();
+        }
+        async function deleteScore(id) {
+            if (!confirm('삭제하시겠습니까?')) return;
+            await fetch(`/api/scores/${id}`, { method: 'DELETE' });
+            loadRankings();
+        }
+        switchGame('POOL');
+    </script>
+</body>
+</html>
